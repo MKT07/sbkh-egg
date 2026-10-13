@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="km">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>SBKH · ពងមាសសំណាង</title>
+<!--
+  Telegram Mini App 中转页
+  ------------------------------------------------------------------
+  为什么需要这一页：
+    Google Apps Script 的网页应用会把使用者的 HTML 包在一个 iframe 里。
+    而 Telegram 把身份资料（initData）放在「最上层页面」的网址片段里，
+    iframe 跟最上层是不同网域，读不到 → 验证必然失败。
+
+  这一页的唯一工作：
+    1. 它自己是最上层页面，所以 Telegram SDK 能正常初始化
+    2. 读出 initData
+    3. 把 Apps Script 的页面包进来，initData 当 query 参数传进去
+       （Apps Script 后端 doGet 收 ?tgdata=，再做 HMAC 验签）
+
+  游戏逻辑、奖池、Sheet 全部仍然在 Apps Script，这里一行都没有。
+-->
+<style>
+  html,body{margin:0;height:100%;background:#4a0d0f;color:#f5d78e;
+    font-family:system-ui,-apple-system,"Noto Sans Khmer",sans-serif;}
+  #frame{position:fixed;inset:0;width:100%;height:100%;border:0;display:none;}
+  #msg{position:fixed;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:14px;padding:24px;
+    text-align:center;line-height:1.7;}
+  .egg{font-size:46px;}
+  .sub{font-size:14px;opacity:.75;max-width:30ch;}
+  .spin{width:30px;height:30px;border:3px solid rgba(245,215,142,.25);
+    border-top-color:#f5d78e;border-radius:50%;animation:s 1s linear infinite;}
+  @keyframes s{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<iframe id="frame" allow="autoplay" referrerpolicy="no-referrer-when-downgrade"></iframe>
+
+<div id="msg">
+  <div class="egg">🥚</div>
+  <div class="spin" id="spin"></div>
+  <div class="sub" id="sub">កំពុងដំណើរការ...</div>
+</div>
+
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+// ★ 换部署时只改这一行
+var APP_URL = 'https://script.google.com/macros/s/AKfycbxIX5vDseAwUmDPAKunhaS4MZ6Uyo2KxsnxY1cA35kCkPHxNxQCcr4V1gkX8_BY8RqF/exec';
+
+(function () {
+  var tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+
+  if (tg) {
+    try { tg.ready(); } catch (e) {}
+    try { tg.expand(); } catch (e) {}
+  }
+
+  var init = (tg && tg.initData) ? tg.initData : '';
+
+  if (!init) {
+    document.getElementById('spin').style.display = 'none';
+    document.getElementById('sub').textContent =
+      'សូមបើកតាម Telegram · Please open this from Telegram';
+    return;
+  }
+
+  var url = APP_URL + (APP_URL.indexOf('?') >= 0 ? '&' : '?')
+          + 'tgdata=' + encodeURIComponent(init)
+          + '&src=tgminiapp';
+
+  var f = document.getElementById('frame');
+  f.onload = function () {
+    f.style.display = 'block';
+    var m = document.getElementById('msg');
+    if (m) m.style.display = 'none';
+  };
+  f.src = url;
+})();
+</script>
+
+</body>
+</html>
